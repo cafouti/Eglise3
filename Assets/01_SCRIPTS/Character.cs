@@ -177,8 +177,9 @@ public class Character : MonoBehaviour
         {
             pose *= -1;
         }
-        
-        //Debug.Log("energie = " + energie);
+
+        //energie = Mathf.Sin(0.5f*Time.time + Mathf.PI/4);
+        Debug.Log("energie = " + energie);
         Vector2 move = new Vector2(energie, 0);
         curseur.anchoredPosition = xOffsetCurseur + 75 * move;
 
