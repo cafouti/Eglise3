@@ -156,12 +156,12 @@ public class Character : MonoBehaviour
     {
         if (cam.droite && mouvement.x < 0)
         {
-            cam.droite = false;
+            //cam.droite = false;
             character.transform.Rotate(0, 180, 0);
         }
         else if (!cam.droite && mouvement.x > 0)
         {
-            cam.droite = true;
+            //cam.droite = true;
             character.transform.Rotate(0, -180, 0);
         }
     }
