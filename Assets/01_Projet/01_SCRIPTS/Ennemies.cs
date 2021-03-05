@@ -8,6 +8,10 @@ public class Ennemies : MonoBehaviour
     public float masse;
     private float gravity;
     private bool poursuite = false;
+    private bool retour = false;
+    private float offsetx = 0.2f;
+    public bool droite;
+    private float lastMovex;
 
     private GameObject character;
     private CharacterController controller;
@@ -15,9 +19,13 @@ public class Ennemies : MonoBehaviour
     private BoxCollider detectionZone;
     private Transform player;
 
+    private Vector3 start;
+    public Transform destination;
+
     // Start is called before the first frame update
     void Start()
     {
+        start = transform.position;        
         character = gameObject;
         controller = GetComponent<CharacterController>();
         detectionZone = GetComponent<BoxCollider>();
@@ -26,13 +34,45 @@ public class Ennemies : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
         if (controller.isGrounded && mouvement.y < 0)
         {
             mouvement.y = masse;
         }
+               
+        lastMovex = mouvement.x;
 
         if (poursuite)
+        {
+            Poursuite();
+            Debug.Log("Poursuite = " + poursuite);
+        }
+        else if(retour)
+        {
+            Retour();
+        }
+        else
+        {
+            mouvement.x = 0;
+        }
+
+        if(mouvement.x == -1*lastMovex)
+        {
+            Debug.Log("Besoin de rotate");
+        }
+        
+        controller.Move(mouvement * Time.deltaTime);
+    }
+    
+    /////////////////////////Methode classe//////////////////////////
+
+    void Rotate()
+    {
+        character.transform.Rotate(0,180,0);
+    }
+
+    void Poursuite()
+    {
+        if(player != null)
         {
             if (character.transform.position.x > player.transform.position.x)
             {
@@ -42,40 +82,33 @@ public class Ennemies : MonoBehaviour
             {
                 mouvement.x = speed;
             }
-        }
-        else
-        {
-            mouvement.x = 0;
-        }
-        
-        Debug.Log("Mouvement = " + mouvement);
-
-        controller.Move(mouvement * Time.deltaTime);
+        }        
     }
-    
-    void Rotate()
+
+    void Retour()
     {
-        character.transform.Rotate(0,180,0);
+        if (start.x > transform.position.x)
+        {
+            mouvement.x = speed;
+        }
+        else if (start.x < transform.position.x)
+        {
+            mouvement.x = -speed;
+        }
+
+        if(-offsetx < start.x - transform.position.x && start.x - transform.position.x < offsetx)
+        {
+            retour = false;
+        }
     }
 
-    void Poursuite(float x)
-    {        
-            if(character.transform.position.x > transform.position.x)
-            {
-                x = speed;
-            }
-            else if(character.transform.position.x > transform.position.x)
-            {
-                x = -speed;
-            }
-    }
+    /////////////////////////Detection/////////////////////
 
     private void OnTriggerEnter(Collider other)
     {
         
         if(other.gameObject.name == "Fille(Clone)" || other.gameObject.name == "Monstre(Clone)")
         {
-            Debug.Log(other.gameObject.name);
             player = other.gameObject.transform;
             poursuite = true;
         }
@@ -85,8 +118,24 @@ public class Ennemies : MonoBehaviour
     {
         if (other.gameObject.name == "Fille(Clone)" || other.gameObject.name == "Monstre(Clone)")
         {
-            player = null;
-            //poursuite = false;
+            StartCoroutine(PerteVue());
         }
+    }
+
+    //////////////////////Coroutine///////////////////////
+
+    IEnumerator PerteVue()
+    {
+        //Debug.Log("Pertevue");
+        yield return new WaitForSeconds(1);
+        poursuite = false;
+        player = null;
+        StartCoroutine(PerteAgro());
+    }
+
+    IEnumerator PerteAgro()
+    {
+        yield return new WaitForSeconds(1);
+        retour = true;
     }
 }
