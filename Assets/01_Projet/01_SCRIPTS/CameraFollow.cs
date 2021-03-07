@@ -15,7 +15,7 @@ public class CameraFollow : MonoBehaviour
 
     void Start()
     {
-        offsetGeneral = new Vector3(2, 1.4f, -12f);
+        offsetGeneral = new Vector3(0.5f, 0.6f, -3);
         offset = offsetGeneral;
         offsetTunnel = new Vector3(2,1.4f,-7f);
     }
@@ -23,20 +23,11 @@ public class CameraFollow : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Tunnel(inTunnel);
-        Rotation(droite);        
+        Tunnel(inTunnel);      
         Vector3 positionFutur = joueur.position + offset ;
         Vector3 positionTransit = Vector3.Lerp(transform.position, positionFutur, vitesse*Time.deltaTime) ;
         transform.position = positionTransit;
-    }
-
-    void Rotation(bool droite)
-    {
-        if((droite && offset.x < 0) || (!droite && offset.x > 0))
-        {
-            offset.x *= -1;
-        }
-    }
+    }    
 
     void Tunnel(bool inTunnel)
     {

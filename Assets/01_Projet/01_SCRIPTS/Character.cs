@@ -73,7 +73,7 @@ public class Character : MonoBehaviour
 
         if (canTrans)
         {
-            Energie();
+            //Energie();
         }
 
         mouvement.y += gravity * Time.deltaTime;

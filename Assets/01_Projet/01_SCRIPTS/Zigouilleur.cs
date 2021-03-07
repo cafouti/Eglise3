@@ -2,16 +2,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Ennemies : MonoBehaviour
+public class Zigouilleur : MonoBehaviour
 {
+    //////////////////////Variables//////////////////////////
     public float speed;
     public float masse;
     private float gravity;
     private bool poursuite = false;
     private bool retour = false;
     private float offsetx = 0.2f;
-    public bool droite;
-    private float lastMovex;
+    private bool droite;
+    private bool startDroite = false;
 
     private GameObject character;
     private CharacterController controller;
@@ -22,44 +23,51 @@ public class Ennemies : MonoBehaviour
     private Vector3 start;
     public Transform destination;
 
-    // Start is called before the first frame update
+    ///////////////////////Initialisation/////////////////////
     void Start()
     {
+        if (transform.localRotation.y == 0)
+        {
+            startDroite = true;
+            droite = startDroite;
+        }
+        
         start = transform.position;        
         character = gameObject;
         controller = GetComponent<CharacterController>();
         detectionZone = GetComponent<BoxCollider>();
     }
 
-    // Update is called once per frame
+    ///////////////////////Boucle/////////////////////
     void Update()
     {
         if (controller.isGrounded && mouvement.y < 0)
         {
             mouvement.y = masse;
-        }
-               
-        lastMovex = mouvement.x;
+        }        
 
         if (poursuite)
         {
             Poursuite();
-            Debug.Log("Poursuite = " + poursuite);
         }
         else if(retour)
         {
             Retour();
+            if(!retour)
+            {
+                mouvement.x = 0;
+            }
         }
         else
         {
             mouvement.x = 0;
         }
-
-        if(mouvement.x == -1*lastMovex)
-        {
-            Debug.Log("Besoin de rotate");
-        }
         
+        if((droite && mouvement.x < 0) || (!droite && mouvement.x > 0))
+        {
+            Rotate();
+        }
+
         controller.Move(mouvement * Time.deltaTime);
     }
     
@@ -68,6 +76,7 @@ public class Ennemies : MonoBehaviour
     void Rotate()
     {
         character.transform.Rotate(0,180,0);
+        droite = !droite;
     }
 
     void Poursuite()
@@ -98,11 +107,16 @@ public class Ennemies : MonoBehaviour
 
         if(-offsetx < start.x - transform.position.x && start.x - transform.position.x < offsetx)
         {
+            if((droite && !startDroite) || (!droite && startDroite))
+            {
+                Rotate();
+            }
+
             retour = false;
         }
     }
 
-    /////////////////////////Detection/////////////////////
+    /////////////////////////Trigger/////////////////////
 
     private void OnTriggerEnter(Collider other)
     {
@@ -111,6 +125,9 @@ public class Ennemies : MonoBehaviour
         {
             player = other.gameObject.transform;
             poursuite = true;
+            StopCoroutine("PerteVue");
+            StopCoroutine("PerteAgro");
+            retour = false;
         }
     }
 
@@ -118,15 +135,14 @@ public class Ennemies : MonoBehaviour
     {
         if (other.gameObject.name == "Fille(Clone)" || other.gameObject.name == "Monstre(Clone)")
         {
-            StartCoroutine(PerteVue());
+            StartCoroutine("PerteVue");
         }
     }
 
     //////////////////////Coroutine///////////////////////
-
+    
     IEnumerator PerteVue()
     {
-        //Debug.Log("Pertevue");
         yield return new WaitForSeconds(1);
         poursuite = false;
         player = null;
