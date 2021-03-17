@@ -14,7 +14,7 @@ public class DetectionCollision : MonoBehaviour
 
     void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        if (hit.point.y > this.transform.position.y + this.transform.localScale.y && character.jumping)
+        if (hit.point.y > this.transform.position.y + this.transform.localScale.y/2 && character.jumping)
         {
             character.CancelJump();
             character.jumping = false;

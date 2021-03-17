@@ -1,10 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Character : MonoBehaviour
 {
-    private bool monstreEtat = false;
+    private bool monstreEtat = true;
     public Vector3 mouvement;
 
     public float speed;
@@ -12,10 +13,11 @@ public class Character : MonoBehaviour
     private float masse;
     private float gravity;
     private float energie = 0;
-    public float increment = 0;
-    private float pose = 1;
+    public float increment = 0.01f;
+    public int nbPushMax = 30;
+    private int nbPush = 0;
     public bool jumping = false;
-    private bool canTrans = true;
+    public bool canTrans = true;
 
     public float speedF;
     public float sautF;
@@ -28,10 +30,17 @@ public class Character : MonoBehaviour
     public float gravityM;
 
     private GameObject character;
-    private CharacterController controller;
+    public CharacterController controller;
     public CameraFollow cam;
     public RectTransform curseur;
     private Vector2 xOffsetCurseur;
+
+    public int fadeTime;
+    public Image blackFade;
+    public Transform respawnPoint;
+    public Transform respawnPointStart;
+    private bool death = false;
+    private bool noDeath = false;
 
     public GameObject gbF;
     public GameObject gbM;
@@ -44,66 +53,79 @@ public class Character : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        xOffsetCurseur = curseur.anchoredPosition ;
         fille = new float[4] { speedF, sautF, masseF, gravityF };
         monstre = new float[4] { speedM, sautM, masseM, gravityM };
-        ChangeGB(gbF, 0, fille);
-        xOffsetCurseur = curseur.anchoredPosition;
+        ChangeGB(gbM, 0, monstre);
+        StartCoroutine("fadeOut");
     }
 
     // Update is called once per frame
     void Update()
     {
+        //Recuperation de la valeur de la touche de deplacement
         float x = Input.GetAxis("Horizontal");
-        mouvement.x = x * speed;
 
-        if (controller.isGrounded && mouvement.y < 0)
+        if(!death)
         {
-            mouvement.y = masse;
+            mouvement.x = x * speed;
+
+            //Maintien au sol
+            if (controller.isGrounded && mouvement.y < 0)
+            {
+                mouvement.y = masse;
+            }
+
+            //Gestion saut
+            if (jumping)
+            {
+                EndJump();
+            }
+            Jump();
+
+            //Gestion orientation perso
+            Rotate();
+
+            //Gestion transformation
+            if (canTrans)
+            {
+                Transformation();
+                Energie();
+            }                
+
+            //Gestion gravité
+            mouvement.y += gravity * Time.deltaTime;
+
+            //Application mouvement
+            controller.Move(mouvement * Time.deltaTime);
         }
 
-        Transformation();
-
-        if (jumping)
-        {
-            EndJump();
-        }
-
-        Rotate();
-        Jump();
-
-        if (canTrans)
-        {
-            //Energie();
-        }
-
-        mouvement.y += gravity * Time.deltaTime;
-        controller.Move(mouvement * Time.deltaTime);
+        if (Input.GetKeyDown(KeyCode.Keypad0) && !death)
+        {            
+            StartCoroutine("fadeIn");
+        }      
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////
 
     void Transformation()
     {
-        if (Input.GetButtonDown("Transformation") && !monstreEtat)
+        if (Input.GetButtonDown("Transformation") && monstreEtat)
         {
-            ChangeGB(gbM, 1.3f, monstre);
-            monstreEtat = true;
-            energie = -0.2f;
-            if(pose>0)
-            {
-                pose *= -1;
-            }
-            
+            energie = 1;
+            nbPush = nbPushMax;
         }
-        else if (Input.GetButtonDown("Transformation") && monstreEtat)
+        else if(Input.GetButtonDown("Transformation") && !monstreEtat && nbPush>0)
         {
-            ChangeGB(gbF, -0.6f, fille);
-            monstreEtat = false;
-            energie = 0.2f;
-            if (pose < 0)
+            if(energie + increment * 5 * nbPush >=1)
             {
-                pose *= -1;
+                energie = 1;
             }
+            else
+            {
+                energie += increment * 5 * nbPush;
+            }
+            nbPush -= 2;
         }
     }
 
@@ -156,43 +178,55 @@ public class Character : MonoBehaviour
     {
         if (cam.droite && mouvement.x < 0)
         {
-            //cam.droite = false;
             character.transform.Rotate(0, 180, 0);
         }
         else if (!cam.droite && mouvement.x > 0)
         {
-            //cam.droite = true;
             character.transform.Rotate(0, -180, 0);
         }
     }
 
     void Energie()
     {
-        energie += increment * pose;
-        if (energie >= 1)
+        if(!monstreEtat)
         {
-            pose *= -1;
-        }
-        else if (energie <= -1)
-        {
-            pose *= -1;
-        }
+            energie -= increment;
+        }        
         
-        //Debug.Log("energie = " + energie);
         Vector2 move = new Vector2(energie, 0);
         curseur.anchoredPosition = xOffsetCurseur + 75 * move;
 
-        if (energie < 0 && !monstreEtat)
+        if (energie <= 0 && !monstreEtat)
         {
-            ChangeGB(gbM, 1.3f, monstre);
+            ChangeGB(gbM, 0.8f, monstre);
             monstreEtat = true;
-            
+
         }
         else if (energie > 0 && monstreEtat)
         {
             ChangeGB(gbF, -0.6f, fille);
             monstreEtat = false;
-            
         }
+    }
+
+    IEnumerator fadeOut()
+    {
+        blackFade.CrossFadeAlpha(0,fadeTime,false);
+        yield return new WaitForSeconds(fadeTime);
+        death = false;
+    }
+
+    IEnumerator fadeIn()
+    {
+        death = true;
+        blackFade.CrossFadeAlpha(1,fadeTime,false);
+        yield return new WaitForSeconds(fadeTime);
+        Respawn(respawnPoint);
+        StartCoroutine("fadeOut");
+    }
+
+    void Respawn(Transform destination)
+    {
+        controller.transform.position = destination.position;
     }
 }
